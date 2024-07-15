@@ -1,0 +1,91 @@
+plugins {
+    id 'war'
+    id 'maven-publish'
+    id 'signing'
+    id 'com.github.node-gradle.node' version '3.1.0'
+}
+
+group = 'com.lucidworks'
+version = '1.6.17'
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+}
+
+war {
+    from('src') {
+        include '**/*'
+    }
+    webInf {
+        from('src/WEB-INF') {
+            include 'web.xml'
+        }
+    }
+}
+
+node {
+    version = '14.17.0'
+    npmVersion = '6.14.13'
+    download = true
+}
+
+task npmBuild(type: NpmTask) {
+    args = ['run', 'build']
+}
+
+war.dependsOn npmBuild
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.web
+            pom {
+                name = 'Banana Project'
+                description = 'The Banana project was forked from Kibana, and works with all kinds of time series (and non-time series) data stored in Apache Solr.'
+                url = 'https://github.com/LucidWorks/banana'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'Andrew Thanalertvisuti'
+                        email = 'andrew.thana@gmail.com'
+                        organization = 'Lucidworks'
+                        organizationUrl = 'https://lucidworks.com/'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/LucidWorks/banana.git'
+                    developerConnection = 'scm:git:git@github.com/LucidWorks/banana.git'
+                    url = 'https://github.com/LucidWorks/banana'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "OSSRH"
+            url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            credentials {
+                username = System.getenv("OSSRH_USERNAME")
+                password = System.getenv("OSSRH_PASSWORD")
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.mavenJava
+}
+
+tasks.withType(Sign) {
+    onlyIf { project.hasProperty('signing.keyId') }
+}
